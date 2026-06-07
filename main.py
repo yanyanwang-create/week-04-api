@@ -9,6 +9,7 @@ app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -29,3 +30,28 @@ def create_book(book: schemas.BookBase, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_book)
     return db_book
+
+
+@app.put("/books/{book_id}", response_model=schemas.Book)
+def update_book(book_id: int, book: schemas.BookBase, db: Session = Depends(get_db)):
+    db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+
+    if db_book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    db_book.title = book.title
+    db.commit()
+    db.refresh(db_book)
+    return db_book
+
+
+@app.delete("/books/{book_id}")
+def delete_book(book_id: int, db: Session = Depends(get_db)):
+    db_book = db.query(models.Book).filter(models.Book.id == book_id).first()
+
+    if db_book is None:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    db.delete(db_book)
+    db.commit()
+    return {"message": "Book deleted successfully"}
